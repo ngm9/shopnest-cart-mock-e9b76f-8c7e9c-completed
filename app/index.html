@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopNest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #111; }
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; letter-spacing: 0.04em; }
+    #cart-icon {
+      position: relative;
+      cursor: default;
+      font-size: 1.4rem;
+    }
+    #cart-count {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      background: #e94560;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+    }
+    main { padding: 32px 24px; max-width: 900px; margin: 0 auto; }
+    h2 { margin-bottom: 20px; font-size: 1.1rem; color: #444; }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .product-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .product-card h3 { font-size: 1rem; }
+    .product-card .price { font-weight: 700; color: #1a1a2e; font-size: 1.05rem; }
+    .product-card button {
+      margin-top: auto;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .product-card button:hover { background: #c73652; }
+    .product-card button:disabled { background: #aaa; cursor: not-allowed; }
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      z-index: 999;
+      box-shadow: 0 4px 16px rgba(0,0,0,.18);
+      min-width: 260px;
+      text-align: center;
+    }
+    #toast.success { background: #22c55e; color: #fff; }
+    #toast.error   { background: #ef4444; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ShopNest</h1>
+    <div id="cart-icon" aria-label="Cart">
+      🛒
+      <span id="cart-count" aria-label="Cart item count">0</span>
+    </div>
+  </header>
+
+  <main>
+    <h2>Featured Products</h2>
+    <div class="product-grid" id="product-grid">
+      <div class="product-card">
+        <h3>Wireless Mouse</h3>
+        <span class="price">$29.99</span>
+        <button data-product-id="wireless-mouse" data-testid="add-to-cart-wireless-mouse">
+          Add to cart
+        </button>
+      </div>
+      <div class="product-card">
+        <h3>Mechanical Keyboard</h3>
+        <span class="price">$89.99</span>
+        <button data-product-id="mechanical-keyboard" data-testid="add-to-cart-mechanical-keyboard">
+          Add to cart
+        </button>
+      </div>
+      <div class="product-card">
+        <h3>USB-C Hub</h3>
+        <span class="price">$45.00</span>
+        <button data-product-id="usb-c-hub" data-testid="add-to-cart-usb-c-hub">
+          Add to cart
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    let cartCount = 0;
+
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = type;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    function updateCartBadge(delta) {
+      cartCount += delta;
+      document.getElementById('cart-count').textContent = String(cartCount);
+    }
+
+    document.getElementById('product-grid').addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-product-id]');
+      if (!button) return;
+
+      const productId = button.dataset.productId;
+      button.disabled = true;
+
+      try {
+        const response = await fetch('/api/cart/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, quantity: 1 }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Server error: ' + response.status);
+        }
+
+        updateCartBadge(1);
+        showToast('Item added to cart!', 'success');
+      } catch {
+        showToast('Add to cart failed', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
